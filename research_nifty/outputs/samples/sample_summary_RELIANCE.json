@@ -1,0 +1,16 @@
+{
+  "ticker": "RELIANCE.NS",
+  "signal": "BUY",
+  "confidence_score": 0.71,
+  "conviction_band": "Medium",
+  "entry": 2987.5,
+  "entry_zone": [2972.6, 3002.4],
+  "targets": [3020.0, 3065.0, 3110.0],
+  "stop_loss": 2935.0,
+  "risk_reward": 2.1,
+  "position_size_pct": 0.037,
+  "rationale": "Technical + derivatives alignment with neutral macro",
+  "setup_type": "trend_continuation",
+  "macro_regime": "Neutral",
+  "timestamp": "2026-03-20T00:00:00"
+}
