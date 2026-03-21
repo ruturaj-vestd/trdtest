@@ -11,7 +11,7 @@ from services.market_data import NIFTY50
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--limit", type=int, default=10)
+    p.add_argument("--limit", type=int, default=50)
     args = p.parse_args()
     g = ResearchGraph()
     rows = []

@@ -87,7 +87,7 @@ MAX_DAILY_LLM_BUDGET_USD=10
 python scripts/run_single.py --ticker RELIANCE.NS
 
 # Batch scan
-python scripts/run_batch.py --limit 10
+python scripts/run_batch.py --limit 50
 
 # Live monitor (NSE-hours aware loop)
 python scripts/run_live_monitor.py

@@ -1,13 +1,23 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 import pandas as pd
 import yfinance as yf
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 NIFTY50 = [
-    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS", "LT.NS", "ITC.NS", "SBIN.NS", "KOTAKBANK.NS", "BHARTIARTL.NS"
+    "ADANIENT.NS", "ADANIPORTS.NS", "APOLLOHOSP.NS", "ASIANPAINT.NS", "AXISBANK.NS",
+    "BAJAJ-AUTO.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS", "BEL.NS", "BHARTIARTL.NS",
+    "BPCL.NS", "BRITANNIA.NS", "CIPLA.NS", "COALINDIA.NS", "DRREDDY.NS",
+    "EICHERMOT.NS", "ETERNAL.NS", "GRASIM.NS", "HCLTECH.NS", "HDFCBANK.NS",
+    "HDFCLIFE.NS", "HEROMOTOCO.NS", "HINDALCO.NS", "HINDUNILVR.NS", "ICICIBANK.NS",
+    "INDUSINDBK.NS", "INFY.NS", "ITC.NS", "JIOFIN.NS", "JSWSTEEL.NS",
+    "KOTAKBANK.NS", "LT.NS", "M&M.NS", "MARUTI.NS", "NESTLEIND.NS",
+    "NTPC.NS", "ONGC.NS", "POWERGRID.NS", "RELIANCE.NS", "SBILIFE.NS",
+    "SBIN.NS", "SHRIRAMFIN.NS", "SUNPHARMA.NS", "TATACONSUM.NS", "TATAMOTORS.NS",
+    "TATASTEEL.NS", "TCS.NS", "TECHM.NS", "TITAN.NS", "ULTRACEMCO.NS",
 ]
 
 
@@ -18,19 +28,30 @@ def _normalize_ohlcv_columns(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
         else:
             df.columns = df.columns.get_level_values(0)
     if isinstance(df.columns, pd.Index):
-        # Remove accidental duplicates from flattening.
         df = df.loc[:, ~df.columns.duplicated()]
     return df
+
+
+def _as_float(value: Any) -> float | None:
+    try:
+        if value is None or pd.isna(value):
+            return None
+        return float(value)
+    except Exception:
+        return None
 
 
 class MarketDataProvider:
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=4))
     def load_ohlcv(self, ticker: str, period: str = "6mo", interval: str = "1d") -> pd.DataFrame:
-        df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
+        df = yf.Ticker(ticker).history(period=period, interval=interval, auto_adjust=True)
         if df.empty:
             raise ValueError(f"No OHLCV data for {ticker}")
         df = _normalize_ohlcv_columns(df, ticker)
-        return df.dropna()
+        required = ["Open", "High", "Low", "Close", "Volume"]
+        if not all(c in df.columns for c in required):
+            raise ValueError(f"Missing OHLCV columns for {ticker}: {set(required) - set(df.columns)}")
+        return df[required].dropna(how="any")
 
     def get_info(self, ticker: str) -> dict:
         try:
@@ -44,6 +65,14 @@ class MarketDataProvider:
         except Exception:
             return []
 
+    def _download_close(self, symbol: str) -> pd.Series:
+        try:
+            hist = yf.Ticker(symbol).history(period="5d", interval="1d", auto_adjust=True)
+            hist = _normalize_ohlcv_columns(hist, symbol)
+            return hist["Close"] if "Close" in hist.columns else pd.Series(dtype=float)
+        except Exception:
+            return pd.Series(dtype=float)
+
     def load_macro_snapshot(self) -> dict:
         symbols = {
             "usdinr": "INR=X",
@@ -52,21 +81,13 @@ class MarketDataProvider:
             "spx": "^GSPC",
             "nasdaq": "^IXIC",
             "gold": "GC=F",
-            "india10y": "^INDIAGB10Y",
+            # Yahoo has intermittent no-data on ^INDIAGB10Y; use US10Y as fallback proxy.
+            "india10y_proxy": "^TNX",
         }
-        out = {}
+        out: dict[str, float | str | None] = {}
         for k, s in symbols.items():
-            try:
-                hist = yf.download(s, period="5d", interval="1d", progress=False)
-                hist = _normalize_ohlcv_columns(hist, s)
-                close = hist["Close"] if "Close" in hist.columns else pd.Series(dtype=float)
-                out[k] = float(close.iloc[-1]) if not close.empty else None
-                if not close.empty and len(close) > 1:
-                    out[f"{k}_ret1d"] = float(close.pct_change().iloc[-1])
-                else:
-                    out[f"{k}_ret1d"] = 0.0
-            except Exception:
-                out[k] = None
-                out[f"{k}_ret1d"] = 0.0
+            close = self._download_close(s)
+            out[k] = _as_float(close.iloc[-1]) if not close.empty else None
+            out[f"{k}_ret1d"] = _as_float(close.pct_change().iloc[-1]) if len(close) > 1 else 0.0
         out["timestamp"] = datetime.utcnow().isoformat()
         return out

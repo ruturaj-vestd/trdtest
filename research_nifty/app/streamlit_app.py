@@ -38,12 +38,13 @@ with pages[0]:
         fig.add_hline(y=state.risk_report.stop_loss, line_dash="dot", annotation_text="Stop")
         for i, t in enumerate(state.risk_report.targets, start=1):
             fig.add_hline(y=t, line_dash="dash", annotation_text=f"T{i}")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 with pages[1]:
+    batch_count = st.slider("Batch universe size", min_value=5, max_value=len(NIFTY50), value=len(NIFTY50))
     if st.button("Run Batch Scan"):
         rows = []
-        for t in NIFTY50[:10]:
+        for t in NIFTY50[:batch_count]:
             s = asyncio.run(graph.run_for_ticker(t))
             rows.append({
                 "ticker": t,
