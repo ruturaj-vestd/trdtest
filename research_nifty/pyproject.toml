@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "research-nifty"
+version = "0.1.0"
+description = "Production-ready multi-agent Nifty 50 research and monitoring platform"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "langgraph>=0.2.0",
+  "pydantic>=2.7.0",
+  "pydantic-settings>=2.2.1",
+  "pandas>=2.2.0",
+  "numpy>=1.26.0",
+  "httpx>=0.27.0",
+  "aiohttp>=3.9.0",
+  "yfinance>=0.2.44",
+  "nsepython>=2.97",
+  "feedparser>=6.0.11",
+  "streamlit>=1.35.0",
+  "plotly>=5.22.0",
+  "duckdb>=1.0.0",
+  "tenacity>=8.3.0",
+  "loguru>=0.7.2",
+  "apscheduler>=3.10.4",
+  "diskcache>=5.6.3",
+  "joblib>=1.4.2",
+  "python-dotenv>=1.0.1",
+  "markdown>=3.6",
+  "pytest>=8.2.0",
+  "pytest-asyncio>=0.23.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
